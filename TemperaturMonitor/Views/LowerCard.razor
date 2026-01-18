@@ -26,9 +26,7 @@
 @code
 {
     [Parameter] public string Title { get; set; } = "";
-    [Parameter] public float Load { get; set; }
+    [Parameter] public float Load { get; set; } 
     
     private int LoadPercent => (int)ClampService.Clamp(Load, 0, 100);
-    
-    private double Clamp(double v, double min, double max) => v < min ? min : (v > max ? max : v);
 }

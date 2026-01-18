@@ -15,6 +15,7 @@ public static class MauiProgram
         builder.Services.AddMauiBlazorWebView();
         builder.Services.AddSingleton<IColorService, ColorService>();
         builder.Services.AddSingleton<IClampService, ClampService>();
+        builder.Services.AddSingleton<IDataService, DataService>();
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();

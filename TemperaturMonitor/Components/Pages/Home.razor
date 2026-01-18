@@ -1,7 +1,9 @@
 ﻿@page "/"
 @implements IDisposable
 @using LibreHardwareMonitor.Hardware;
+@using TemperaturMonitor.Services
 @using TemperaturMonitor.Views
+@inject IDataService DataService
 
 <link rel="stylesheet" href="css/app.css" />
 
@@ -162,136 +164,54 @@ else if (!_isReady)
     {
         hw.Update();
     
-        // CPU Temps + Load (CPU HW)
         if (hw.HardwareType == HardwareType.Cpu)
         {
-            foreach (var sensor in hw.Sensors)
-            {
-                if (sensor.SensorType == SensorType.Temperature &&
-                    sensor.Name == "Core Average" &&
-                    sensor.Value.HasValue)
-                {
-                    _cpuTemp = sensor.Value.Value;
-                    if (_cpuTemp > _maxCpuTemp) _maxCpuTemp = _cpuTemp;
-                }
+            var data = DataService.GetCpuData(hw);
+            _cpuTemp = data.temp;
+            _cpuLoad = data.Load;
 
-                if (sensor.SensorType == SensorType.Load &&
-                    sensor.Value.HasValue &&
-                    (sensor.Name.Contains("CPU Total", StringComparison.OrdinalIgnoreCase) ||
-                    sensor.Name.Equals("Total", StringComparison.OrdinalIgnoreCase)))
-                {
-                    _cpuLoad = sensor.Value.Value;
-                }
-            }
+            if (_cpuTemp > _maxCpuTemp)
+                _maxCpuTemp = _cpuTemp;
+        }
+        
+        if (hw.HardwareType == HardwareType.SuperIO || hw.HardwareType == HardwareType.Motherboard)
+        {
+            _cpuFanRpm = DataService.GetMainboardData(hw);
         }
 
-        // GPU Temps + Load + Fan (GPU HW)
         if (hw.HardwareType is HardwareType.GpuAmd or HardwareType.GpuNvidia or HardwareType.GpuIntel)
         {
-            // Temp: erster Temp-Sensor
-            foreach (var sensor in hw.Sensors)
-            {
-                if (sensor.SensorType == SensorType.Temperature && sensor.Value.HasValue)
-                {
-                    _gpuTemp = sensor.Value.Value;
-                    if (_gpuTemp > _maxGpuTemp) _maxGpuTemp = _gpuTemp;
-                    break;
-                }
-            }
-
-            // Load: separat
-            foreach (var sensor in hw.Sensors)
-            {
-                if (sensor.SensorType == SensorType.Load && sensor.Value.HasValue)
-                {
-                    if (sensor.Name.Contains("GPU", StringComparison.OrdinalIgnoreCase) ||
-                        sensor.Name.Contains("Core", StringComparison.OrdinalIgnoreCase) ||
-                        sensor.Name.Contains("Total", StringComparison.OrdinalIgnoreCase))
-                    {
-                        _gpuLoad = sensor.Value.Value;
-                        break;
-                    }
-                }
-            }
-
-            // Fan RPM
-            foreach (var sensor in hw.Sensors)
-            {
-                if (sensor.SensorType == SensorType.Fan && sensor.Value.HasValue)
-                {
-                    _gpuFanRpm = sensor.Value.Value;
-                    break;
-                }
-            }
+            var data = DataService.GetGpuData(hw);
+            _gpuTemp = data.temp;
+            _gpuLoad = data.Load;
+            _gpuFanRpm = data.RPM;
+            
+            if (_gpuTemp > _maxGpuTemp)
+                _maxGpuTemp = _gpuTemp;
         }
 
         // RAM Load (Memory HW)
         if (hw.HardwareType == HardwareType.Memory)
         {
-            foreach (var sensor in hw.Sensors)
-            {
-                if (sensor.SensorType == SensorType.Load && sensor.Value.HasValue)
-                {
-                    _ramLoad = sensor.Value.Value;
-                    break;
-                }
-            }
-        }
-
-        // CPU Fan: kommt fast immer über SuperIO (SubHardware)
-        if (hw.HardwareType == HardwareType.SuperIO || hw.HardwareType == HardwareType.Motherboard)
-        {
-            foreach (var sensor in hw.Sensors)
-            {
-                if (sensor.SensorType == SensorType.Fan && sensor.Value.HasValue)
-                {
-                    // Bei dir: Fan1 = CPU Fan
-                    if (sensor.Name.Equals("Fan #1", StringComparison.OrdinalIgnoreCase) ||
-                        sensor.Name.Equals("Fan 1", StringComparison.OrdinalIgnoreCase) ||
-                        sensor.Name.Contains("Fan #1", StringComparison.OrdinalIgnoreCase) ||
-                        sensor.Name.Contains("Fan 1", StringComparison.OrdinalIgnoreCase))
-                    {
-                        _cpuFanRpm = sensor.Value.Value;
-                        break;
-                    }
-                }
-            }
+            var data = DataService.GetRamData(hw);
+            if (data > 0)
+                _ramLoad = data;
         }
         
         // SSD Temps
         if (hw.HardwareType == HardwareType.Storage)
         {
-            var id = hw.Identifier.ToString();
+            var data = DataService.GetStorageData(hw);
+            _ssd1Temp = data.Ssd1Temp;
+            _ssd2Temp = data.Ssd2Temp;
 
-            if (!_storageIndexById.TryGetValue(id, out int idx))
-            {
-                idx = _nextStorageIndex++;
-                _storageIndexById[id] = idx;
-            }
-
-            var tempSensor = hw.Sensors.FirstOrDefault(s =>
-                s.SensorType == SensorType.Temperature &&
-                s.Value.HasValue &&
-                (s.Name.Equals("Temperature", StringComparison.OrdinalIgnoreCase) ||
-                 s.Name.Contains("Temperature", StringComparison.OrdinalIgnoreCase) ||
-                 s.Name.Contains("Drive", StringComparison.OrdinalIgnoreCase)));
-
-            if (tempSensor?.Value is { } temp)
-            {
-                if (idx == 0)
-                {
-                    _ssd1Temp = temp;
-                    if (_ssd1Temp > _maxSsd1Temp) _maxSsd1Temp = _ssd1Temp;
-                }
-                else if (idx == 1)
-                {
-                    _ssd2Temp = temp;
-                    if (_ssd2Temp > _maxSsd2Temp) _maxSsd2Temp = _ssd2Temp;
-                }
-            }
+            if (_ssd1Temp > _maxSsd1Temp)
+                _maxSsd1Temp = _ssd1Temp;
+            if (_ssd2Temp > _maxSsd2Temp)
+                _maxSsd2Temp = _ssd2Temp;
         }
 
-        // WICHTIG: SubHardware rekursiv!
+        // für SubHardware (z.B. SuperIO)
         foreach (var sub in hw.SubHardware)
             UpdateRecursive(sub);
     }
