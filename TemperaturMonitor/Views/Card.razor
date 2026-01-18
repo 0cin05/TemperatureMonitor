@@ -1,6 +1,7 @@
 @using TemperaturMonitor.Services
 @inject IColorService ColorService
 @inject IClampService ClampService
+@inject IGraphService GraphService
 
 <div class="card">
     <div class="titleRow">
@@ -24,7 +25,7 @@
                     <line x1="0" y1="17" x2="100" y2="17" class="grid" />
                     <line x1="0" y1="32" x2="100" y2="32" class="grid" />
 
-                    <polyline points="@BuildPolyline(Points, 0, 100)" class="line" />
+                    <polyline points="@GraphService.BuildPolyline(Points, 0, 100)" class="line" />
                 </svg>
 
                 <div class="yAxis">
@@ -57,11 +58,11 @@
         </div>
     }
     
-    @if (ShowRPM)
+    @if (ShowRpm)
     {
         <div class="rpmRow">
             <span class="rpmLabel">Fan</span>
-            <span class="rpmValue">@FanRPM.ToString("0") RPM</span>
+            <span class="rpmValue">@FanRpm.ToString("0") RPM</span>
         </div> 
     }
 </div>
@@ -74,39 +75,14 @@
     [Parameter] public double MaxTemp { get; set; }
     [Parameter] public List<(DateTime t, float v)> Points { get; set; } = new();
     [Parameter] public float Load { get; set; }
-    [Parameter] public float FanRPM { get; set; }
+    [Parameter] public float FanRpm { get; set; }
     
     [Parameter] public bool ShowTemp { get; set; }
     [Parameter] public bool ShowLoad { get; set; }
-    [Parameter] public bool ShowRPM { get; set; }
+    [Parameter] public bool ShowRpm { get; set; }
     
     private const double MaxScaleTemp = 100.0;
     private int Percent => (int)ClampService.Clamp((Temp / MaxScaleTemp) * 100.0, 0, 100);
     private int LoadPercent => (int)ClampService.Clamp(Load, 0, 100);
-    
-    
-    private string BuildPolyline(List<(DateTime t, float v)> series, float minT, float maxT)
-    {
-        if (series.Count < 2) return "";
-
-        int n = series.Count;
-        var pts = new System.Text.StringBuilder();
-
-        for (int i = 0; i < n; i++)
-        {
-            float x = (n == 1) ? 0 : (i * 100f / (n - 1));
-
-            float v = ClampService.Clamp(series[i].v, minT, maxT);
-            float y = 30f - ((v - minT) / (maxT - minT)) * 30f; // 0..30
-
-            if (i > 0) pts.Append(' ');
-            pts.Append(x.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture));
-            pts.Append(',');
-            pts.Append(y.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture));
-        }
-
-        return pts.ToString();
-    }
-
 }
 

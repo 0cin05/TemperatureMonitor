@@ -4,6 +4,7 @@
 @using TemperaturMonitor.Services
 @using TemperaturMonitor.Views
 @inject IDataService DataService
+@inject IGraphService GraphService
 
 <link rel="stylesheet" href="css/app.css" />
 
@@ -25,10 +26,10 @@ else if (!_isReady)
         MaxTemp="_maxCpuTemp"
         Points="_cpuPoints"
         Load="_cpuLoad"
-        FanRPM="_cpuFanRpm"
+        FanRpm="_cpuFanRpm"
         ShowTemp="true"
         ShowLoad="true"
-        ShowRPM="true">
+        ShowRpm="true">
     </Card>
     
     <Card
@@ -37,10 +38,10 @@ else if (!_isReady)
         MaxTemp="_maxGpuTemp"
         Points="_gpuPoints"
         Load="_gpuLoad"
-        FanRPM="_gpuFanRpm"
+        FanRpm="_gpuFanRpm"
         ShowTemp="true"
         ShowLoad="true"
-        ShowRPM="true">
+        ShowRpm="true">
     </Card>
 
     <Card
@@ -89,10 +90,6 @@ else if (!_isReady)
     private readonly List<(DateTime t, float v)> _gpuPoints = new();
     private readonly List<(DateTime t, float v)> _ssd1Points = new();
     private readonly List<(DateTime t, float v)> _ssd2Points = new();
-    
-    private readonly Dictionary<string, int> _storageIndexById = new(); // Hardware.Identifier -> Index
-    private int _nextStorageIndex;
-    
     
     private CancellationTokenSource? _cts;
     private bool _isReady;
@@ -154,10 +151,10 @@ else if (!_isReady)
         foreach (var hw in _computer.Hardware)
             UpdateRecursive(hw);
         
-        PushPoint(_cpuPoints, _cpuTemp);
-        PushPoint(_gpuPoints, _gpuTemp);
-        PushPoint(_ssd1Points, _ssd1Temp);
-        PushPoint(_ssd2Points, _ssd2Temp);
+        GraphService.PushPoint(_cpuPoints, _cpuTemp);
+        GraphService.PushPoint(_gpuPoints, _gpuTemp);
+        GraphService.PushPoint(_ssd1Points, _ssd1Temp);
+        GraphService.PushPoint(_ssd2Points, _ssd2Temp);
     }
 
     private void UpdateRecursive(IHardware hw)
@@ -226,20 +223,6 @@ else if (!_isReady)
         _gpuPoints.Clear();
         _ssd1Points.Clear();
         _ssd2Points.Clear();
-    }
-
-    private static void PushPoint(List<(DateTime t, float v)> series, float value)
-    {
-        var now = DateTime.Now;
-        series.Add((now, value));
-
-        var cutoff = now.AddMinutes(-1);
-        int removeCount = 0;
-        while (removeCount < series.Count && series[removeCount].t < cutoff)
-            removeCount++;
-        
-        if(removeCount > 0)
-            series.RemoveRange(0, removeCount);
     }
     
     public void Dispose()
