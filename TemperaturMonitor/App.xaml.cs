@@ -1,4 +1,6 @@
-﻿namespace TemperaturMonitor;
+﻿using TemperaturMonitor.WinUI;
+
+namespace TemperaturMonitor;
 
 public partial class App : Application
 {
@@ -9,6 +11,16 @@ public partial class App : Application
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        return new Window(new MainPage()) { Title = "TemperaturMonitor" };
+        var window = new Window(new MainPage()) { Title = "TemperaturMonitor" };
+        
+#if WINDOWS
+        window.Created += (_, __) =>
+        {
+            WindowsWindowPlacement.Restore(window);
+            WindowsWindowPlacement.HookAndPersist(window);
+        };
+#endif
+
+        return window;
     }
 }
