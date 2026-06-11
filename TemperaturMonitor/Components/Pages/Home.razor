@@ -1,9 +1,8 @@
-﻿@page "/"
+@page "/"
 @implements IDisposable
 @using OpenHardwareMonitor.Hardware
 @using TemperaturMonitor.Services
 @using TemperaturMonitor.Views
-@inject IDataService DataService
 @inject IGraphService GraphService
 
 <link rel="stylesheet" href="css/app.css" />
@@ -20,80 +19,36 @@ else if (!_isReady)
 <button class="btn" @onclick="() => Reset()">Reset</button>
 
 <div class="grid">
-    <Card
-        Title="CPU"
-        Temp="_cpuTemp"
-        MaxTemp="_maxCpuTemp"
-        Points="_cpuPoints"
-        Load="_cpuLoad"
-        FanRpm="_cpuFanRpm"
-        ShowTemp="true"
-        ShowLoad="true"
-        ShowRpm="true">
-    </Card>
-    
-    <Card
-        Title="GPU"
-        Temp="_gpuTemp"
-        MaxTemp="_maxGpuTemp"
-        Points="_gpuPoints"
-        Load="_gpuLoad"
-        FanRpm="_gpuFanRpm"
-        ShowTemp="true"
-        ShowLoad="true"
-        ShowRpm="true">
-    </Card>
-
-    <Card
-        Title="SSD 1"
-        Temp="_ssd1Temp"
-        MaxTemp="_maxSsd1Temp"
-        Points="_ssd1Points"
-        ShowTemp="true">
-    </Card>
-
-    <Card
-        Title="SSD 2"
-        Temp="_ssd2Temp"
-        MaxTemp="_maxSsd2Temp"
-        Points="_ssd2Points"
-        ShowTemp="true">
-    </Card>    
-    
-    <LowerCard
-        Title="RAM"
-        Load="_ramLoad">
-    </LowerCard>
+    @foreach (var entry in _entries)
+    {
+        @if (entry.Type == HardwareType.Memory)
+        {
+            <LowerCard Title="@entry.Name" Load="@entry.Load" />
+        }
+        else
+        {
+            <Card
+                Title="@entry.Name"
+                Temp="@entry.Temp"
+                MaxTemp="@entry.MaxTemp"
+                Points="@entry.Points"
+                Load="@entry.Load"
+                FanRpm="@entry.FanRpm"
+                ShowTemp="@entry.HasTemp"
+                ShowLoad="@entry.HasLoad"
+                ShowRpm="@entry.HasFan" />
+        }
+    }
 </div>
 
-@code{
+@code {
     private Computer? _computer;
-    
-    float _cpuTemp;
-    float _gpuTemp;
-    float _ssd1Temp;
-    float _ssd2Temp;
-    
-    private float _cpuLoad;
-    private float _gpuLoad;
-    private float _ramLoad;
-    
-    double _maxCpuTemp;
-    double _maxGpuTemp;
-    double _maxSsd1Temp;
-    double _maxSsd2Temp;
+    private readonly List<HardwareEntry> _entries = new();
 
-    private float _cpuFanRpm;
-    private float _gpuFanRpm;
-
-    private readonly List<(DateTime t, float v)> _cpuPoints = new();
-    private readonly List<(DateTime t, float v)> _gpuPoints = new();
-    private readonly List<(DateTime t, float v)> _ssd1Points = new();
-    private readonly List<(DateTime t, float v)> _ssd2Points = new();
-    
     private CancellationTokenSource? _cts;
     private bool _isReady;
     private string? _initError;
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -106,33 +61,127 @@ else if (!_isReady)
                 IsMotherboardEnabled = true,
                 IsStorageEnabled = true,
             };
-            
+
             Console.WriteLine(typeof(Computer).Assembly.Location);
             Console.WriteLine(typeof(Computer).Assembly.FullName);
 
             await Task.Run(() =>
             {
                 _computer.Open(false);
-                foreach (var hw in _computer.Hardware)
-                {
-                    UpdateRecursive(hw);
-                }
+                DiscoverHardware();
             });
-            
+
             _isReady = true;
             await InvokeAsync(StateHasChanged);
 
             _cts = new CancellationTokenSource();
-            _ = PollTempsAsync(_cts.Token); // fire-and-forget sauber
+            _ = PollTempsAsync(_cts.Token);
         }
         catch (Exception ex)
         {
             _initError = ex.ToString();
             await InvokeAsync(StateHasChanged);
         }
-        
     }
-    
+
+    private static int HardwareSortOrder(HardwareEntry e) => e.Type switch
+    {
+        HardwareType.Cpu       => 0,
+        HardwareType.GpuNvidia => 1,
+        HardwareType.GpuAmd    => 1,
+        HardwareType.Memory    => 2,
+        HardwareType.Storage   => 3,
+        _                      => 99,
+    };
+
+    private void DiscoverHardware()
+    {
+        IHardware? superIo = null;
+        foreach (var hw in _computer!.Hardware)
+        {
+            if (hw.HardwareType != HardwareType.Motherboard) continue;
+            foreach (var sub in hw.SubHardware)
+            {
+                sub.Update();
+                if (sub.HardwareType == HardwareType.SuperIO &&
+                    sub.Sensors.Any(s => s.SensorType == SensorType.Fan))
+                {
+                    superIo = sub;
+                    break;
+                }
+            }
+        }
+
+        foreach (var hw in _computer!.Hardware)
+        {
+            hw.Update();
+
+            switch (hw.HardwareType)
+            {
+                case HardwareType.Cpu:
+                    _entries.Add(new HardwareEntry
+                    {
+                        Name        = hw.Name,
+                        Type        = hw.HardwareType,
+                        Hardware    = hw,
+                        HasTemp     = hw.Sensors.Any(s => s.SensorType == SensorType.Temperature),
+                        HasLoad     = hw.Sensors.Any(s => s.SensorType == SensorType.Load),
+                        HasFan      = superIo != null,
+                        FanHardware = superIo,
+                    });
+                    break;
+
+                case HardwareType.GpuNvidia:
+                case HardwareType.GpuAmd:
+                    _entries.Add(new HardwareEntry
+                    {
+                        Name     = hw.Name,
+                        Type     = hw.HardwareType,
+                        Hardware = hw,
+                        HasTemp  = hw.Sensors.Any(s => s.SensorType == SensorType.Temperature),
+                        HasLoad  = hw.Sensors.Any(s => s.SensorType == SensorType.Load),
+                        HasFan   = hw.Sensors.Any(s => s.SensorType == SensorType.Fan),
+                    });
+                    break;
+
+                case HardwareType.Memory:
+                    if (hw.Name.Contains("Virtual", StringComparison.OrdinalIgnoreCase))
+                        break;
+                    if (hw.Sensors.Any(s => s.SensorType == SensorType.Load))
+                    {
+                        _entries.Add(new HardwareEntry
+                        {
+                            Name     = "RAM",
+                            Type     = hw.HardwareType,
+                            Hardware = hw,
+                            HasLoad  = true,
+                        });
+                    }
+                    break;
+
+                case HardwareType.Storage:
+                    bool hasTemp = hw.Sensors.Any(s => s.SensorType == SensorType.Temperature);
+                    bool hasLoad = hw.Sensors.Any(s => s.SensorType == SensorType.Load);
+                    bool hasFan  = hw.Sensors.Any(s => s.SensorType == SensorType.Fan);
+                    if (hasTemp || hasLoad || hasFan)
+                    {
+                        _entries.Add(new HardwareEntry
+                        {
+                            Name     = hw.Name,
+                            Type     = hw.HardwareType,
+                            Hardware = hw,
+                            HasTemp  = hasTemp,
+                            HasLoad  = hasLoad,
+                            HasFan   = hasFan,
+                        });
+                    }
+                    break;
+            }
+        }
+
+        _entries.Sort((a, b) => HardwareSortOrder(a).CompareTo(HardwareSortOrder(b)));
+    }
+
     private async Task PollTempsAsync(CancellationToken token)
     {
         while (!token.IsCancellationRequested)
@@ -145,98 +194,88 @@ else if (!_isReady)
 
     private void GetData()
     {
-        if (_computer == null) return;
-
-        foreach (var hw in _computer.Hardware)
-            UpdateRecursive(hw);
-        
-        GraphService.PushPoint(_cpuPoints, _cpuTemp);
-        GraphService.PushPoint(_gpuPoints, _gpuTemp);
-        GraphService.PushPoint(_ssd1Points, _ssd1Temp);
-        GraphService.PushPoint(_ssd2Points, _ssd2Temp);
+        foreach (var entry in _entries)
+            UpdateEntry(entry);
     }
 
-    private void UpdateRecursive(IHardware hw)
+    private void UpdateEntry(HardwareEntry entry)
     {
-        hw.Update();
-    
-        if (hw.HardwareType == HardwareType.Cpu)
-        {
-            var data = DataService.GetCpuData(hw);
-            _cpuTemp = data.temp;
-            _cpuLoad = data.Load;
+        entry.Hardware.Update();
+        entry.FanHardware?.Update();
 
-            if (_cpuTemp > _maxCpuTemp)
-                _maxCpuTemp = _cpuTemp;
-        }
-        
-        if (hw.HardwareType == HardwareType.SuperIO || hw.HardwareType == HardwareType.Motherboard)
+        if (entry.HasTemp)
         {
-            _cpuFanRpm = DataService.GetMainboardData(hw);
-        }
+            ISensor? sensor = null;
 
-        if (hw.HardwareType is HardwareType.GpuNvidia or HardwareType.GpuAmd)
-        {
-            var data = DataService.GetGpuData(hw);
-            _gpuTemp = data.temp;
-            _gpuLoad = data.Load;
-            _gpuFanRpm = data.RPM;
-            
-            if (_gpuTemp > _maxGpuTemp)
-                _maxGpuTemp = _gpuTemp;
+            if (entry.Type == HardwareType.Cpu)
+            {
+                sensor = entry.Hardware.Sensors.FirstOrDefault(s =>
+                    s.SensorType == SensorType.Temperature &&
+                    s.Value.HasValue &&
+                    s.Name.Equals("Core Average", StringComparison.OrdinalIgnoreCase));
+            }
+
+            sensor ??= entry.Hardware.Sensors.FirstOrDefault(s =>
+                s.SensorType == SensorType.Temperature && s.Value.HasValue);
+
+            entry.Temp = sensor?.Value ?? 0f;
+            if (entry.Temp > entry.MaxTemp) entry.MaxTemp = entry.Temp;
+            GraphService.PushPoint(entry.Points, entry.Temp);
         }
 
-        // RAM Load (Memory HW)
-        if (hw.HardwareType == HardwareType.Memory)
+        if (entry.HasLoad)
         {
-            var data = DataService.GetRamData(hw);
-            if (data > 0)
-                _ramLoad = data;
+            ISensor? sensor = entry.Type switch
+            {
+                HardwareType.Cpu => entry.Hardware.Sensors.FirstOrDefault(s =>
+                    s.SensorType == SensorType.Load && s.Value.HasValue &&
+                    (s.Name.Contains("CPU Total", StringComparison.OrdinalIgnoreCase) ||
+                     s.Name.Equals("Total", StringComparison.OrdinalIgnoreCase))),
+                HardwareType.GpuNvidia or HardwareType.GpuAmd => entry.Hardware.Sensors.FirstOrDefault(s =>
+                    s.SensorType == SensorType.Load && s.Value.HasValue &&
+                    (s.Name.Contains("GPU", StringComparison.OrdinalIgnoreCase) ||
+                     s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase) ||
+                     s.Name.Contains("Total", StringComparison.OrdinalIgnoreCase))),
+                _ => entry.Hardware.Sensors.FirstOrDefault(s =>
+                    s.SensorType == SensorType.Load && s.Value.HasValue),
+            };
+
+            entry.Load = sensor?.Value ?? 0f;
         }
-        
-        // SSD Temps
-        if (hw.HardwareType == HardwareType.Storage)
+
+        if (entry.HasFan)
         {
-            var data = DataService.GetStorageData(hw);
-            _ssd1Temp = data.Ssd1Temp;
-            _ssd2Temp = data.Ssd2Temp;
+            var fanHw = entry.FanHardware ?? entry.Hardware;
+            ISensor? sensor = null;
 
-            if (_ssd1Temp > _maxSsd1Temp)
-                _maxSsd1Temp = _ssd1Temp;
-            if (_ssd2Temp > _maxSsd2Temp)
-                _maxSsd2Temp = _ssd2Temp;
+            if (entry.FanHardware != null)
+            {
+                sensor = fanHw.Sensors.FirstOrDefault(s =>
+                    s.SensorType == SensorType.Fan && s.Value.HasValue &&
+                    (s.Name.Contains("Fan #1", StringComparison.OrdinalIgnoreCase) ||
+                     s.Name.Contains("Fan 1", StringComparison.OrdinalIgnoreCase)));
+            }
+
+            sensor ??= fanHw.Sensors.FirstOrDefault(s =>
+                s.SensorType == SensorType.Fan && s.Value.HasValue);
+
+            entry.FanRpm = sensor?.Value ?? 0f;
         }
-
-        // für SubHardware (z.B. SuperIO)
-        foreach (var sub in hw.SubHardware)
-            UpdateRecursive(sub);
     }
 
     public void Reset()
     {
-        _maxCpuTemp = 0;
-        _maxGpuTemp = 0;
-        _maxSsd1Temp = 0;
-        _maxSsd2Temp = 0;
-        _cpuPoints.Clear();
-        _gpuPoints.Clear();
-        _ssd1Points.Clear();
-        _ssd2Points.Clear();
+        foreach (var entry in _entries)
+        {
+            entry.MaxTemp = 0;
+            entry.Points.Clear();
+        }
     }
-    
+
     public void Dispose()
     {
-        try { _cts?.Cancel(); }
-        catch
-        {
-            // ignored
-        }
-
+        try { _cts?.Cancel(); } catch { }
         _cts?.Dispose();
-        try { _computer?.Close(); }
-        catch
-        {
-            // ignored
-        }
+        try { _computer?.Close(); } catch { }
     }
 }
