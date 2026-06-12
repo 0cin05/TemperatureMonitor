@@ -214,6 +214,19 @@ public class HardwareService : IHardwareService
             entry.Load = sensor?.Value ?? 0f;
         }
 
+        if (entry.Type == HardwareType.Memory)
+        {
+            var used = entry.Hardware.Sensors.FirstOrDefault(s =>
+                s.SensorType == SensorType.Data && s.Value.HasValue &&
+                s.Name.Contains("Used", StringComparison.OrdinalIgnoreCase));
+            var available = entry.Hardware.Sensors.FirstOrDefault(s =>
+                s.SensorType == SensorType.Data && s.Value.HasValue &&
+                s.Name.Contains("Available", StringComparison.OrdinalIgnoreCase));
+
+            entry.RamUsedGb  = used?.Value ?? 0f;
+            entry.RamTotalGb = (used?.Value ?? 0f) + (available?.Value ?? 0f);
+        }
+
         if (entry.HasFan)
         {
             var fanHw = entry.FanHardware ?? entry.Hardware;

@@ -14,6 +14,9 @@ public class HardwareEntry
     public float Temp   { get; set; }
     public float Load   { get; set; }
     public float FanRpm { get; set; }
+
+    public float RamUsedGb  { get; set; }
+    public float RamTotalGb { get; set; }
     
     public double MaxTemp { get; set; }
     public List<(DateTime t, float v)> Points { get; set; } = new();

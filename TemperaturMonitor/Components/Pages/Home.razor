@@ -1,13 +1,10 @@
 @page "/"
 @implements IDisposable
-@using OpenHardwareMonitor.Hardware
 @using TemperaturMonitor.Models
 @using TemperaturMonitor.Services
 @using TemperaturMonitor.Views
 @inject IHardwareService HardwareService
 @inject IVisibilityService VisibilityService
-
-<link rel="stylesheet" href="css/app.css" />
 
 <div class="toolbar">
     <button class="btn" @onclick="HardwareService.Reset" disabled="@(!HardwareService.IsReady)">Reset</button>
@@ -29,23 +26,18 @@ else
     <div class="grid">
         @foreach (var entry in HardwareService.Entries.Where(e => VisibilityService.IsVisible(e.Key)))
         {
-            @if (entry.Type == HardwareType.Memory)
-            {
-                <LowerCard Title="@entry.Name" Load="@entry.Load" />
-            }
-            else
-            {
-                <Card
-                    Title="@entry.Name"
-                    Temp="@entry.Temp"
-                    MaxTemp="@entry.MaxTemp"
-                    Points="@entry.Points"
-                    Load="@entry.Load"
-                    FanRpm="@entry.FanRpm"
-                    ShowTemp="@(entry.HasTemp && VisibilityService.ShowsSensor(entry.Key, "temp"))"
-                    ShowLoad="@(entry.HasLoad && VisibilityService.ShowsSensor(entry.Key, "load"))"
-                    ShowRpm="@(entry.HasFan  && VisibilityService.ShowsSensor(entry.Key, "fan"))" />
-            }
+            <Card
+                Title="@entry.Name"
+                Temp="@entry.Temp"
+                MaxTemp="@entry.MaxTemp"
+                Points="@entry.Points"
+                Load="@entry.Load"
+                FanRpm="@entry.FanRpm"
+                RamUsedGb="@entry.RamUsedGb"
+                RamTotalGb="@entry.RamTotalGb"
+                ShowTemp="@(entry.HasTemp && VisibilityService.ShowsSensor(entry.Key, "temp"))"
+                ShowLoad="@(entry.HasLoad && VisibilityService.ShowsSensor(entry.Key, "load"))"
+                ShowRpm="@(entry.HasFan  && VisibilityService.ShowsSensor(entry.Key, "fan"))" />
         }
     </div>
 }
