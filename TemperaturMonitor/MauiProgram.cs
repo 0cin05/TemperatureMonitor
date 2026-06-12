@@ -26,7 +26,7 @@ public static class MauiProgram
 
         var app = builder.Build();
 
-        // Hardware-Init sofort starten, bevor die erste Seite rendert
+        // resolve now to start hardware init before the first page renders
         app.Services.GetRequiredService<IHardwareService>();
 
         return app;

@@ -69,11 +69,9 @@ static class WindowsWindowPlacement
         int h = Preferences.Get(KH, -1);
         int state = Preferences.Get(KState, 0);
 
-        // noch nie gespeichert? -> nix tun
         if (x == int.MinValue || y == int.MinValue || w <= 0 || h <= 0)
             return;
 
-        // Monitor-Fallback: wenn sich Monitore geändert haben
         var displayArea = DisplayArea.GetFromPoint(new PointInt32(x, y), DisplayAreaFallback.Nearest);
         if (displayArea != null)
         {
