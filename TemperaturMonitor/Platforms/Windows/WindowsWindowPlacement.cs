@@ -1,5 +1,4 @@
-﻿#if WINDOWS
-using Microsoft.Maui.Controls;
+﻿using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
 using Microsoft.UI.Windowing;
 using Windows.Graphics;
@@ -96,4 +95,3 @@ static class WindowsWindowPlacement
         }
     }
 }
-#endif
