@@ -338,6 +338,12 @@ h1 {
 
 .card-ram { grid-column: 1 / -1; }
 
+.toolbar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
 .btn{
     margin-top: 4px;
     padding: 6px 14px;
@@ -403,4 +409,161 @@ h1 {
 
 .miniChartFooter .left{
     float: left;
+}
+
+/* ===== Version label ===== */
+
+.version-label {
+    position: fixed;
+    bottom: 10px;
+    left: 14px;
+    font-size: 11px;
+    color: var(--muted);
+    opacity: 0.5;
+    pointer-events: none;
+    user-select: none;
+    z-index: 999;
+}
+
+/* ===== Settings Page ===== */
+
+.spinner-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin-top: 80px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--ring-bg);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+}
+
+.settings-section {
+    width: min(100%, 520px);
+    margin: 24px auto 0;
+}
+
+.settings-label-header {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    margin-bottom: 10px;
+}
+
+.settings-hint {
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 8px;
+}
+
+.settings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Jede Hardware-Karte in den Settings */
+.settings-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: 0 4px 12px rgba(0,0,0,.2);
+    overflow: hidden;
+    transition: opacity 180ms ease;
+}
+
+.settings-card--off {
+    opacity: 0.45;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.settings-row--main {
+    padding: 14px 16px;
+}
+
+.settings-row--sub {
+    padding: 9px 16px 9px 32px;
+    border-top: 1px solid rgba(255,255,255,.05);
+}
+
+.settings-sensors {
+    /* subtile Trennung zum Haupt-Toggle */
+    border-top: 1px solid rgba(255,255,255,.06);
+}
+
+.settings-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.settings-sub-label {
+    font-size: 13px;
+    color: var(--muted);
+}
+
+/* Toggle switch */
+.toggle {
+    width: 44px;
+    height: 24px;
+    border-radius: 999px;
+    background: var(--ring-bg);
+    border: 1px solid rgba(255,255,255,.08);
+    position: relative;
+    cursor: pointer;
+    transition: background 180ms ease, border-color 180ms ease;
+    flex-shrink: 0;
+}
+
+.toggle--on {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%; 
+    background: white;
+    transition: transform 180ms ease;
+    box-shadow: 0 1px 4px rgba(0,0,0,.4);
+    pointer-events: none;
+}
+
+.toggle--on .toggle-thumb {
+    transform: translateX(20px);
+}
+
+/* Kleinere Variante für Sensor-Zeilen */
+.toggle--sm {
+    width: 36px;
+    height: 20px;
+}
+
+.toggle--sm .toggle-thumb {
+    width: 14px;
+    height: 14px;
+}
+
+.toggle--sm.toggle--on .toggle-thumb {
+    transform: translateX(16px);
 }

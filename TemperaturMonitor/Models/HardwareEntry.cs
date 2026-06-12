@@ -1,5 +1,7 @@
 ﻿using OpenHardwareMonitor.Hardware;
 
+namespace TemperaturMonitor.Models;
+
 public class HardwareEntry
 {
     public string Name { get; set; } = "";
@@ -18,4 +20,6 @@ public class HardwareEntry
     
     public IHardware Hardware { get; set; } = null!;
     public IHardware? FanHardware { get; set; }
+
+    public string Key => $"{Type}:{Name}";
 }

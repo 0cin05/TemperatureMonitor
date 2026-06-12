@@ -1,281 +1,67 @@
 @page "/"
 @implements IDisposable
 @using OpenHardwareMonitor.Hardware
+@using TemperaturMonitor.Models
 @using TemperaturMonitor.Services
 @using TemperaturMonitor.Views
-@inject IGraphService GraphService
+@inject IHardwareService HardwareService
+@inject IVisibilityService VisibilityService
 
 <link rel="stylesheet" href="css/app.css" />
 
-@if (_initError is not null)
-{
-    <p style="color:#ef4444">@_initError</p>
-}
-else if (!_isReady)
-{
-    <p style="color:#9aa7bd">Initialisiere Sensoren…</p>
-}
-
-<button class="btn" @onclick="() => Reset()">Reset</button>
-
-<div class="grid">
-    @foreach (var entry in _entries)
-    {
-        @if (entry.Type == HardwareType.Memory)
-        {
-            <LowerCard Title="@entry.Name" Load="@entry.Load" />
-        }
-        else
-        {
-            <Card
-                Title="@entry.Name"
-                Temp="@entry.Temp"
-                MaxTemp="@entry.MaxTemp"
-                Points="@entry.Points"
-                Load="@entry.Load"
-                FanRpm="@entry.FanRpm"
-                ShowTemp="@entry.HasTemp"
-                ShowLoad="@entry.HasLoad"
-                ShowRpm="@entry.HasFan" />
-        }
-    }
+<div class="toolbar">
+    <button class="btn" @onclick="HardwareService.Reset" disabled="@(!HardwareService.IsReady)">Reset</button>
+    <a class="btn" href="settings">Einstellungen</a>
 </div>
 
+@if (HardwareService.InitError is not null)
+{
+    <p style="color:#ef4444">@HardwareService.InitError</p>
+}
+else if (!HardwareService.IsReady)
+{
+    <div class="spinner-wrap">
+        <div class="spinner"></div>
+    </div>
+}
+else
+{
+    <div class="grid">
+        @foreach (var entry in HardwareService.Entries.Where(e => VisibilityService.IsVisible(e.Key)))
+        {
+            @if (entry.Type == HardwareType.Memory)
+            {
+                <LowerCard Title="@entry.Name" Load="@entry.Load" />
+            }
+            else
+            {
+                <Card
+                    Title="@entry.Name"
+                    Temp="@entry.Temp"
+                    MaxTemp="@entry.MaxTemp"
+                    Points="@entry.Points"
+                    Load="@entry.Load"
+                    FanRpm="@entry.FanRpm"
+                    ShowTemp="@(entry.HasTemp && VisibilityService.ShowsSensor(entry.Key, "temp"))"
+                    ShowLoad="@(entry.HasLoad && VisibilityService.ShowsSensor(entry.Key, "load"))"
+                    ShowRpm="@(entry.HasFan  && VisibilityService.ShowsSensor(entry.Key, "fan"))" />
+            }
+        }
+    </div>
+}
+
 @code {
-    private Computer? _computer;
-    private readonly List<HardwareEntry> _entries = new();
-
-    private CancellationTokenSource? _cts;
-    private bool _isReady;
-    private string? _initError;
-
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        try
-        {
-            _computer = new Computer
-            {
-                IsCpuEnabled = true,
-                IsGpuEnabled = true,
-                IsMemoryEnabled = true,
-                IsMotherboardEnabled = true,
-                IsStorageEnabled = true,
-            };
-
-            Console.WriteLine(typeof(Computer).Assembly.Location);
-            Console.WriteLine(typeof(Computer).Assembly.FullName);
-
-            await Task.Run(() =>
-            {
-                _computer.Open(false);
-                DiscoverHardware();
-            });
-
-            _isReady = true;
-            await InvokeAsync(StateHasChanged);
-
-            _cts = new CancellationTokenSource();
-            _ = PollTempsAsync(_cts.Token);
-        }
-        catch (Exception ex)
-        {
-            _initError = ex.ToString();
-            await InvokeAsync(StateHasChanged);
-        }
+        HardwareService.Changed += OnChanged;
+        VisibilityService.Changed += OnChanged;
     }
 
-    private static int HardwareSortOrder(HardwareEntry e) => e.Type switch
-    {
-        HardwareType.Cpu       => 0,
-        HardwareType.GpuNvidia => 1,
-        HardwareType.GpuAmd    => 1,
-        HardwareType.Memory    => 2,
-        HardwareType.Storage   => 3,
-        _                      => 99,
-    };
-
-    private void DiscoverHardware()
-    {
-        IHardware? superIo = null;
-        foreach (var hw in _computer!.Hardware)
-        {
-            if (hw.HardwareType != HardwareType.Motherboard) continue;
-            foreach (var sub in hw.SubHardware)
-            {
-                sub.Update();
-                if (sub.HardwareType == HardwareType.SuperIO &&
-                    sub.Sensors.Any(s => s.SensorType == SensorType.Fan))
-                {
-                    superIo = sub;
-                    break;
-                }
-            }
-        }
-
-        foreach (var hw in _computer!.Hardware)
-        {
-            hw.Update();
-
-            switch (hw.HardwareType)
-            {
-                case HardwareType.Cpu:
-                    _entries.Add(new HardwareEntry
-                    {
-                        Name        = hw.Name,
-                        Type        = hw.HardwareType,
-                        Hardware    = hw,
-                        HasTemp     = hw.Sensors.Any(s => s.SensorType == SensorType.Temperature),
-                        HasLoad     = hw.Sensors.Any(s => s.SensorType == SensorType.Load),
-                        HasFan      = superIo != null,
-                        FanHardware = superIo,
-                    });
-                    break;
-
-                case HardwareType.GpuNvidia:
-                case HardwareType.GpuAmd:
-                    _entries.Add(new HardwareEntry
-                    {
-                        Name     = hw.Name,
-                        Type     = hw.HardwareType,
-                        Hardware = hw,
-                        HasTemp  = hw.Sensors.Any(s => s.SensorType == SensorType.Temperature),
-                        HasLoad  = hw.Sensors.Any(s => s.SensorType == SensorType.Load),
-                        HasFan   = hw.Sensors.Any(s => s.SensorType == SensorType.Fan),
-                    });
-                    break;
-
-                case HardwareType.Memory:
-                    if (hw.Name.Contains("Virtual", StringComparison.OrdinalIgnoreCase))
-                        break;
-                    if (hw.Sensors.Any(s => s.SensorType == SensorType.Load))
-                    {
-                        _entries.Add(new HardwareEntry
-                        {
-                            Name     = "RAM",
-                            Type     = hw.HardwareType,
-                            Hardware = hw,
-                            HasLoad  = true,
-                        });
-                    }
-                    break;
-
-                case HardwareType.Storage:
-                    bool hasTemp = hw.Sensors.Any(s => s.SensorType == SensorType.Temperature);
-                    bool hasLoad = hw.Sensors.Any(s => s.SensorType == SensorType.Load);
-                    bool hasFan  = hw.Sensors.Any(s => s.SensorType == SensorType.Fan);
-                    if (hasTemp || hasLoad || hasFan)
-                    {
-                        _entries.Add(new HardwareEntry
-                        {
-                            Name     = hw.Name,
-                            Type     = hw.HardwareType,
-                            Hardware = hw,
-                            HasTemp  = hasTemp,
-                            HasLoad  = hasLoad,
-                            HasFan   = hasFan,
-                        });
-                    }
-                    break;
-            }
-        }
-
-        _entries.Sort((a, b) => HardwareSortOrder(a).CompareTo(HardwareSortOrder(b)));
-    }
-
-    private async Task PollTempsAsync(CancellationToken token)
-    {
-        while (!token.IsCancellationRequested)
-        {
-            GetData();
-            await InvokeAsync(StateHasChanged);
-            await Task.Delay(1000, token);
-        }
-    }
-
-    private void GetData()
-    {
-        foreach (var entry in _entries)
-            UpdateEntry(entry);
-    }
-
-    private void UpdateEntry(HardwareEntry entry)
-    {
-        entry.Hardware.Update();
-        entry.FanHardware?.Update();
-
-        if (entry.HasTemp)
-        {
-            ISensor? sensor = null;
-
-            if (entry.Type == HardwareType.Cpu)
-            {
-                sensor = entry.Hardware.Sensors.FirstOrDefault(s =>
-                    s.SensorType == SensorType.Temperature &&
-                    s.Value.HasValue &&
-                    s.Name.Equals("Core Average", StringComparison.OrdinalIgnoreCase));
-            }
-
-            sensor ??= entry.Hardware.Sensors.FirstOrDefault(s =>
-                s.SensorType == SensorType.Temperature && s.Value.HasValue);
-
-            entry.Temp = sensor?.Value ?? 0f;
-            if (entry.Temp > entry.MaxTemp) entry.MaxTemp = entry.Temp;
-            GraphService.PushPoint(entry.Points, entry.Temp);
-        }
-
-        if (entry.HasLoad)
-        {
-            ISensor? sensor = entry.Type switch
-            {
-                HardwareType.Cpu => entry.Hardware.Sensors.FirstOrDefault(s =>
-                    s.SensorType == SensorType.Load && s.Value.HasValue &&
-                    (s.Name.Contains("CPU Total", StringComparison.OrdinalIgnoreCase) ||
-                     s.Name.Equals("Total", StringComparison.OrdinalIgnoreCase))),
-                HardwareType.GpuNvidia or HardwareType.GpuAmd => entry.Hardware.Sensors.FirstOrDefault(s =>
-                    s.SensorType == SensorType.Load && s.Value.HasValue &&
-                    (s.Name.Contains("GPU", StringComparison.OrdinalIgnoreCase) ||
-                     s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase) ||
-                     s.Name.Contains("Total", StringComparison.OrdinalIgnoreCase))),
-                _ => entry.Hardware.Sensors.FirstOrDefault(s =>
-                    s.SensorType == SensorType.Load && s.Value.HasValue),
-            };
-
-            entry.Load = sensor?.Value ?? 0f;
-        }
-
-        if (entry.HasFan)
-        {
-            var fanHw = entry.FanHardware ?? entry.Hardware;
-            ISensor? sensor = null;
-
-            if (entry.FanHardware != null)
-            {
-                sensor = fanHw.Sensors.FirstOrDefault(s =>
-                    s.SensorType == SensorType.Fan && s.Value.HasValue &&
-                    (s.Name.Contains("Fan #1", StringComparison.OrdinalIgnoreCase) ||
-                     s.Name.Contains("Fan 1", StringComparison.OrdinalIgnoreCase)));
-            }
-
-            sensor ??= fanHw.Sensors.FirstOrDefault(s =>
-                s.SensorType == SensorType.Fan && s.Value.HasValue);
-
-            entry.FanRpm = sensor?.Value ?? 0f;
-        }
-    }
-
-    public void Reset()
-    {
-        foreach (var entry in _entries)
-        {
-            entry.MaxTemp = 0;
-            entry.Points.Clear();
-        }
-    }
+    private async void OnChanged() => await InvokeAsync(StateHasChanged);
 
     public void Dispose()
     {
-        try { _cts?.Cancel(); } catch { }
-        _cts?.Dispose();
-        try { _computer?.Close(); } catch { }
+        HardwareService.Changed -= OnChanged;
+        VisibilityService.Changed -= OnChanged;
     }
 }

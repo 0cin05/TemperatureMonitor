@@ -17,12 +17,19 @@ public static class MauiProgram
         builder.Services.AddSingleton<IClampService, ClampService>();
         builder.Services.AddSingleton<IDataService, DataService>();
         builder.Services.AddSingleton<IGraphService, GraphService>();
+        builder.Services.AddSingleton<IVisibilityService, VisibilityService>();
+        builder.Services.AddSingleton<IHardwareService, HardwareService>();
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();
         builder.Logging.AddDebug();
 #endif
 
-        return builder.Build();
+        var app = builder.Build();
+
+        // Hardware-Init sofort starten, bevor die erste Seite rendert
+        app.Services.GetRequiredService<IHardwareService>();
+
+        return app;
     }
 }
