@@ -6,6 +6,11 @@ public partial class App : Application
 {
     public App()
     {
+        // WebView2 needs a user-writable data folder when installed under Program Files
+        Environment.SetEnvironmentVariable("WEBVIEW2_USER_DATA_FOLDER",
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                         "TemperaturMonitor", "WebView2"));
+
         InitializeComponent();
     }
 
