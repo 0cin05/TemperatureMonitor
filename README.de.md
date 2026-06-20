@@ -6,6 +6,10 @@ Eine Windows-Desktop-App zur Echtzeit-Überwachung von Hardware-Sensoren — Tem
 
 Entwickelt mit **.NET 9 / MAUI Blazor Hybrid** und **OpenHardwareMonitor**.
 
+<img width="1917" height="1029" alt="Screenshot 2026-06-20 212026" src="https://github.com/user-attachments/assets/97087631-6cd0-429d-8c24-972a697c32c5" />
+
+<img width="1917" height="1027" alt="Screenshot 2026-06-20 212033" src="https://github.com/user-attachments/assets/b38d45a4-fa41-4dd1-963b-d7c26b346922" />
+
 ---
 
 ## Funktionen
