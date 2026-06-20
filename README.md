@@ -6,6 +6,9 @@ A Windows desktop app that monitors hardware sensors in real time — temperatur
 
 Built with **.NET 9 / MAUI Blazor Hybrid** and powered by **OpenHardwareMonitor**.
 
+<img width="1917" height="1029" alt="Screenshot 2026-06-20 212026" src="https://github.com/user-attachments/assets/546a310d-87a0-4b87-8b6a-0495044abe3b" />
+<img width="1917" height="1027" alt="Screenshot 2026-06-20 212033" src="https://github.com/user-attachments/assets/44f803ad-e724-4fe6-89b4-abad333dde6d" />
+
 ---
 
 ## Features
