@@ -2,7 +2,6 @@
     --bg:       #0f1116;
     --card:     #151a23;
     --surface:  #151a23;
-    --surface-2:#101521;
     --border:   rgba(255,255,255,0.08);
 
     --text:     #e8eefc;
@@ -14,7 +13,6 @@
     --primary:       #3b82f6;
     --primary-hover: #2563eb;
     --danger:        #ef4444;
-    --warning:       #f59e0b;
     --success:       #22c55e;
     --focus:         rgba(59,130,246,0.45);
 
@@ -27,7 +25,6 @@
     --shadow:    0 10px 30px rgba(0,0,0,.35);
 
     --gap:     16px;
-    --padding: 14px;
 
     --content-max: 1800px;
     --card-min:    330px;
@@ -74,8 +71,8 @@ h1, h2, h3, h4 { color: var(--text); }
 h1 { margin: 0 0 16px; font-size: 24px; }
 h1:focus { outline: none; }
 
-a, .btn-link { color: var(--link); text-decoration: none; }
-a:hover, .btn-link:hover { color: var(--link-hover); text-decoration: underline; }
+a { color: var(--link); text-decoration: none; }
+a:hover { color: var(--link-hover); text-decoration: underline; }
 
 .btn {
     padding: 6px 14px;
@@ -95,20 +92,7 @@ a:hover, .btn-link:hover { color: var(--link-hover); text-decoration: underline;
 .btn:focus-visible { outline: 2px solid rgba(154,167,189,.55); outline-offset: 2px; }
 .btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
 
-.btn-primary { color: #fff; background: var(--primary); border-color: rgba(255,255,255,0.12); }
-.btn-primary:hover { background: var(--primary-hover); }
-
-.form-control, .form-select, input, textarea, select {
-    background: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-}
-.form-control::placeholder, input::placeholder, textarea::placeholder {
-    color: rgba(154,167,189,0.75);
-}
-.btn:focus, .btn:active:focus,
-.form-control:focus, .form-check-input:focus {
+.btn:focus, .btn:active:focus {
     box-shadow: 0 0 0 0.12rem rgba(0,0,0,0), 0 0 0 0.28rem var(--focus);
     outline: none;
 }
@@ -121,15 +105,6 @@ a:hover, .btn-link:hover { color: var(--link-hover); text-decoration: underline;
     flex: 0 0 auto;
 }
 
-.grids {
-    flex: 1 1 auto;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: safe center;
-    gap: var(--gap);
-}
-
 .grid {
     display: flex;
     flex-wrap: wrap;
@@ -138,18 +113,6 @@ a:hover, .btn-link:hover { color: var(--link-hover); text-decoration: underline;
     align-content: safe center;
     align-items: stretch;
     flex: 0 0 auto;
-}
-
-/* Temperature cards: fill full width in one row, wrap only when space is tight */
-.grid--temp .card {
-    flex: 1 1 220px;
-    max-width: none;
-}
-
-/* Non-temperature cards (e.g. RAM): below, centered at a reasonable width */
-.grid--other .card {
-    flex: 1 1 var(--card-min);
-    max-width: var(--card-max);
 }
 
 .card {
@@ -162,7 +125,7 @@ a:hover, .btn-link:hover { color: var(--link-hover); text-decoration: underline;
     padding: 14px 16px;
     box-shadow: var(--shadow);
     border: 1px solid var(--border);
-    min-width: 0; /* prevents overflow in grid context */
+    min-width: 0;
 }
 
 .titleRow {
@@ -461,7 +424,3 @@ a:hover, .btn-link:hover { color: var(--link-hover); text-decoration: underline;
 }
 
 .blazor-error-boundary::after { content: "An error has occurred."; }
-
-.valid.modified:not([type=checkbox]) { outline: 1px solid var(--success); }
-.invalid { outline: 1px solid var(--danger); }
-.validation-message { color: var(--danger); }
