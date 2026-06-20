@@ -75,3 +75,6 @@ The output is in the `publish/` folder. Run `TemperatureMonitor.exe` **as admini
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+Third-party components and their licenses are listed in 
+[THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).

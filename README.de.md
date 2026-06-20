@@ -76,3 +76,6 @@ Die Ausgabe liegt im Ordner `publish/`. `TemperatureMonitor.exe` **als Administr
 ## Lizenz
 
 MIT — siehe [LICENSE](LICENSE).
+
+Drittanbieter-Komponenten und ihre Lizenzen sind in 
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) aufgelistet.

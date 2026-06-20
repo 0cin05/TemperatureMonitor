@@ -1,6 +1,6 @@
 #define AppName "TemperatureMonitor"
 #define AppExe "TemperatureMonitor.exe"
-#define AppPublisher "nico"
+#define AppPublisher "0cin05"
 ; AppVersion is passed via CLI: iscc setup.iss /DAppVersion=v1.2.3
 #ifndef AppVersion
   #define AppVersion "dev"
@@ -22,6 +22,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 
 [Files]
 Source: "..\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
+Source: "..\THIRD-PARTY-NOTICES.md"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"
