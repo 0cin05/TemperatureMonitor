@@ -1,5 +1,5 @@
-#define AppName "TemperaturMonitor"
-#define AppExe "TemperaturMonitor.exe"
+#define AppName "TemperatureMonitor"
+#define AppExe "TemperatureMonitor.exe"
 #define AppPublisher "nico"
 ; AppVersion is passed via CLI: iscc setup.iss /DAppVersion=v1.2.3
 #ifndef AppVersion

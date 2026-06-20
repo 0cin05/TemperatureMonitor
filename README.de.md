@@ -1,4 +1,4 @@
-# TemperaturMonitor
+# TemperatureMonitor
 
 > **Sprache:** [English](README.md) | Deutsch
 
@@ -28,10 +28,10 @@ Entwickelt mit **.NET 9 / MAUI Blazor Hybrid** und **OpenHardwareMonitor**.
 
 ### Option 1 — Installer (empfohlen)
 
-1. Zur [Releases](https://github.com/0cin05/TemperaturMonitor/releases)-Seite wechseln.
-2. Die neueste Datei `TemperaturMonitor-vX.X.X-setup.exe` herunterladen.
+1. Zur [Releases](https://github.com/0cin05/TemperatureMonitor/releases)-Seite wechseln.
+2. Die neueste Datei `TemperatureMonitor-vX.X.X-setup.exe` herunterladen.
 3. Den Installer ausführen. Er fragt nach Administrator-Berechtigung.
-4. **TemperaturMonitor** über die Desktop-Verknüpfung oder das Startmenü starten.
+4. **TemperatureMonitor** über die Desktop-Verknüpfung oder das Startmenü starten.
 
 ### Option 2 — Aus dem Quellcode bauen
 
@@ -45,11 +45,11 @@ Entwickelt mit **.NET 9 / MAUI Blazor Hybrid** und **OpenHardwareMonitor**.
 dotnet workload install maui-windows
 
 # Repository klonen
-git clone https://github.com/0cin05/TemperaturMonitor.git
-cd TemperaturMonitor
+git clone https://github.com/0cin05/TemperatureMonitor.git
+cd TemperatureMonitor
 
 # Self-contained Build veröffentlichen
-dotnet publish TemperaturMonitor/TemperaturMonitor.csproj \
+dotnet publish TemperatureMonitor/TemperatureMonitor.csproj \
   -f net9.0-windows10.0.19041.0 \
   -c Release \
   -r win-x64 \
@@ -57,14 +57,14 @@ dotnet publish TemperaturMonitor/TemperaturMonitor.csproj \
   -o ./publish
 ```
 
-Die Ausgabe liegt im Ordner `publish/`. `TemperaturMonitor.exe` **als Administrator** starten.
+Die Ausgabe liegt im Ordner `publish/`. `TemperatureMonitor.exe` **als Administrator** starten.
 
 > **Optional — Installer bauen**
 > Benötigt [Inno Setup](https://jrsoftware.org/isinfo.php).
 >
 > ```bash
 > iscc installer/setup.iss /DAppVersion=v1.0.0
-> # Ausgabe: installer/Output/TemperaturMonitor-v1.0.0-setup.exe
+> # Ausgabe: installer/Output/TemperatureMonitor-v1.0.0-setup.exe
 > ```
 
 ---

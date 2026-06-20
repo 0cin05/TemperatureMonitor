@@ -24,7 +24,7 @@ jobs:
 
       - name: Publish
         run: >
-          dotnet publish TemperaturMonitor/TemperaturMonitor.csproj
+          dotnet publish TemperatureMonitor/TemperatureMonitor.csproj
           -f net9.0-windows10.0.19041.0
           -c Release
           -r win-x64
@@ -37,4 +37,4 @@ jobs:
       - name: Create GitHub release
         uses: softprops/action-gh-release@v3
         with:
-          files: installer/Output/TemperaturMonitor-${{ github.ref_name }}-setup.exe
+          files: installer/Output/TemperatureMonitor-${{ github.ref_name }}-setup.exe
